@@ -1119,8 +1119,9 @@ export function createMultipleStakeholders(
       stakeholderGroupNames
     );
     stakeholder.create();
-    selectItemsPerPage(100);
+    applySearchFilter("Name", stakeholder.name);
     exists(stakeholder.name);
+    clearAllFilters();
     stakeholdersList.push(stakeholder);
   }
   return stakeholdersList;
