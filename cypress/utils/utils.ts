@@ -519,6 +519,9 @@ export function exists(
       });
     }
   });
+  if (itemsPerPage) {
+    selectItemsPerPage(itemsPerPage);
+  }
   cy.get("body").should(($body) => {
     const $table = $body.find(tableSelector);
     expect($table.length, `${tableSelector} to exist`).to.be.greaterThan(0);

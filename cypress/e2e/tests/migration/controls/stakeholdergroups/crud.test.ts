@@ -40,11 +40,11 @@ describe(["@tier2"], "Stakeholder group CRUD operations", () => {
     );
     stakeholdergroup.create();
     cy.wait("@postStakeholdergroups");
-    exists(stakeholdergroup.name);
+    exists(stakeholdergroup.name, undefined, 100);
     const updateStakeholdergroupName = data.getCompanyName();
     stakeholdergroup.edit({ name: updateStakeholdergroupName });
     cy.wait("@getStakeholdergroups");
-    exists(updateStakeholdergroupName);
+    exists(updateStakeholdergroupName, undefined, 100);
 
     stakeholdergroup.delete();
     cy.wait("@getStakeholdergroups");
@@ -63,7 +63,7 @@ describe(["@tier2"], "Stakeholder group CRUD operations", () => {
 
     stakeholdergroup.create();
     cy.wait("@postStakeholdergroups");
-    exists(stakeholdergroup.name);
+    exists(stakeholdergroup.name, undefined, 100);
     expandRowDetails(stakeholdergroup.name);
     exists(memberStakeholderName);
 
