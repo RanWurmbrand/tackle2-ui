@@ -53,7 +53,7 @@ describe(["@tier2"], "Stakeholder group CRUD operations", () => {
 
   it("Stakeholder group CRUD with stakeholder member attached", function () {
     stakeholder.create();
-    exists(stakeholder.email, stakeHoldersTable);
+    exists(stakeholder.email, stakeHoldersTable, 100);
     const memberStakeholderName = stakeholder.name;
     const stakeholdergroup = new Stakeholdergroups(
       data.getCompanyName(),
