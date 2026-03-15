@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 import {
+  applySearchFilter,
   cancelForm,
   click,
   clickByText,
@@ -235,6 +236,7 @@ export class Stakeholders {
 
   delete(cancel = false): void {
     Stakeholders.openList();
+    applySearchFilter("Email", this.email);
     cy.intercept("DELETE", "/hub/stakeholders/*").as("deleteStakeholder");
     clickItemInKebabMenu(this.email, deleteAction);
     if (cancel) {
