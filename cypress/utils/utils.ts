@@ -1119,6 +1119,7 @@ export function createMultipleStakeholders(
       stakeholderGroupNames
     );
     stakeholder.create();
+    selectItemsPerPage(100);
     exists(stakeholder.name);
     stakeholdersList.push(stakeholder);
   }
