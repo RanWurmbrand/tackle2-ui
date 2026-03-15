@@ -145,7 +145,7 @@ export class TagCategory {
       submitForm();
       if (!readSuccessAlert) closeSuccessAlert();
       selectItemsPerPage(100);
-      exists(this.name);
+      exists(this.name, undefined, 100);
     }
   }
 

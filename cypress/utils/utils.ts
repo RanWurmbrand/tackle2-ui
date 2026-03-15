@@ -490,7 +490,11 @@ export function removeMember(memberName: string): void {
   cy.get("span").contains(memberName).siblings(removeButton).click();
 }
 
-export function exists(value: string, tableSelector = appTable): void {
+export function exists(
+  value: string,
+  tableSelector = appTable,
+  itemsPerPage?: number
+): void {
   // After a mutation the UI query hooks use a 5s polling interval
   // (DEFAULT_REFETCH_INTERVAL) and an isFetching/isLoading aliasing bug
   // means background refetches never flip the loading flag — the table
@@ -508,6 +512,9 @@ export function exists(value: string, tableSelector = appTable): void {
       cy.url().then((currentUrl) => {
         cy.visit("/");
         cy.visit(currentUrl);
+        if (itemsPerPage) {
+          selectItemsPerPage(itemsPerPage);
+        }
       });
     }
   });
