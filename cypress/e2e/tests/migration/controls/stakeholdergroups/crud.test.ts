@@ -17,12 +17,15 @@ limitations under the License.
 
 import * as data from "../../../../../utils/data_utils";
 import {
+  applySearchFilter,
+  clearAllFilters,
   exists,
   expandRowDetails,
   notExists,
 } from "../../../../../utils/utils";
 import { Stakeholdergroups } from "../../../../models/migration/controls/stakeholdergroups";
 import { Stakeholders } from "../../../../models/migration/controls/stakeholders";
+import { email as emailFilter } from "../../../../types/constants";
 import { stakeHoldersTable } from "../../../../views/stakeholders.view";
 
 describe(["@tier2"], "Stakeholder group CRUD operations", () => {
@@ -53,7 +56,9 @@ describe(["@tier2"], "Stakeholder group CRUD operations", () => {
 
   it("Stakeholder group CRUD with stakeholder member attached", function () {
     stakeholder.create();
-    exists(stakeholder.email, stakeHoldersTable, 100);
+    applySearchFilter(emailFilter, stakeholder.email);
+    exists(stakeholder.email, stakeHoldersTable);
+    clearAllFilters();
     const memberStakeholderName = stakeholder.name;
     const stakeholdergroup = new Stakeholdergroups(
       data.getCompanyName(),
@@ -81,6 +86,8 @@ describe(["@tier2"], "Stakeholder group CRUD operations", () => {
 
     notExists(stakeholdergroup.name);
     stakeholder.delete();
+    applySearchFilter(emailFilter, stakeholder.email);
     notExists(stakeholder.email, stakeHoldersTable);
+    clearAllFilters();
   });
 });
