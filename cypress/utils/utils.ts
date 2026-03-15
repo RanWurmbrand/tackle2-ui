@@ -356,6 +356,7 @@ export function resetURL(): void {
 export function selectItemsPerPage(items: number): void {
   cy.get(itemsPerPageToggleButton, { timeout: 60 * SEC, log: false })
     .first()
+    .scrollIntoView()
     .should("be.visible")
     .should("not.be.disabled")
     .click();
