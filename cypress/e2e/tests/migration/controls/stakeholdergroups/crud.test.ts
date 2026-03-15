@@ -20,12 +20,14 @@ import {
   applySearchFilter,
   clearAllFilters,
   exists,
+  existsWithinRow,
   expandRowDetails,
   notExists,
+  notExistsWithinRow,
 } from "../../../../../utils/utils";
 import { Stakeholdergroups } from "../../../../models/migration/controls/stakeholdergroups";
 import { Stakeholders } from "../../../../models/migration/controls/stakeholders";
-import { email as emailFilter } from "../../../../types/constants";
+import { email as emailFilter, tdTag } from "../../../../types/constants";
 import { stakeHoldersTable } from "../../../../views/stakeholders.view";
 
 describe(["@tier2"], "Stakeholder group CRUD operations", () => {
@@ -70,7 +72,7 @@ describe(["@tier2"], "Stakeholder group CRUD operations", () => {
     cy.wait("@postStakeholdergroups");
     exists(stakeholdergroup.name, undefined, 100);
     expandRowDetails(stakeholdergroup.name);
-    exists(memberStakeholderName);
+    existsWithinRow(stakeholdergroup.name, tdTag, memberStakeholderName);
 
     stakeholdergroup.edit({
       name: data.getCompanyName(),
@@ -79,7 +81,7 @@ describe(["@tier2"], "Stakeholder group CRUD operations", () => {
     });
     cy.wait("@getStakeholdergroups");
     expandRowDetails(stakeholdergroup.name);
-    notExists(memberStakeholderName);
+    notExistsWithinRow(stakeholdergroup.name, tdTag, memberStakeholderName);
 
     stakeholdergroup.delete();
     cy.wait("@getStakeholdergroups");
