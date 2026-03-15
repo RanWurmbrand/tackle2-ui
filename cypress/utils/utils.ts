@@ -1010,7 +1010,8 @@ export function performRowActionByIcon(
 }
 
 export function clickItemInKebabMenu(rowItem, itemName: string): void {
-  cy.contains(rowItem)
+  cy.get("table tbody")
+    .contains(rowItem)
     .closest(trTag)
     .within(() => {
       click(sideKebabMenu);
