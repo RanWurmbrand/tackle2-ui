@@ -43,6 +43,7 @@ import {
   groupInput,
   jobfunctionInput,
   removeJobFunction,
+  stakeHoldersTable,
   stakeholderEmailInput,
   stakeholderNameInput,
 } from "../../../views/stakeholders.view";
@@ -141,6 +142,11 @@ export class Stakeholders {
         clickByText(navMenu, controls);
         cy.get("h1", { timeout: 60 * SEC }).should("contain", "Controls");
         clickByText(navTab, stakeholders);
+        cy.url().should("include", "/controls/stakeholders");
+        cy.get(stakeHoldersTable)
+          .find("th")
+          .contains("Email")
+          .should("be.visible");
       }
     });
     cy.get("h1", { timeout: 30 * SEC }).should("contain.text", "Controls");

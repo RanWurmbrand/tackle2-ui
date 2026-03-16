@@ -515,6 +515,7 @@ export function exists(
       cy.url().then((currentUrl) => {
         cy.visit("/");
         cy.visit(currentUrl);
+        cy.get(tableSelector).should("be.visible");
         if (itemsPerPage) {
           selectItemsPerPage(itemsPerPage);
         }
@@ -775,13 +776,13 @@ export function verifySortAsc(
   listToVerify: unknown[],
   unsortedList: unknown[]
 ): void {
-  cy.wrap(listToVerify).then((capturedList) => {
-    const sortedList = unsortedList.slice().sort((a, b) =>
+  cy.wrap(listToVerify).then((capturedList: unknown[]) => {
+    const sorted = capturedList.slice().sort((a, b) =>
       a.toString().localeCompare(b.toString(), "en-us", {
-        numeric: !unsortedList.some(isNaN),
+        numeric: !capturedList.some(isNaN),
       })
     );
-    expect(capturedList).to.be.deep.equal(sortedList);
+    expect(capturedList).to.be.deep.equal(sorted);
   });
 }
 
@@ -789,13 +790,13 @@ export function verifySortDesc(
   listToVerify: unknown[],
   unsortedList: unknown[]
 ): void {
-  cy.wrap(listToVerify).then((capturedList) => {
-    const reverseSortedList = unsortedList.slice().sort((a, b) =>
+  cy.wrap(listToVerify).then((capturedList: unknown[]) => {
+    const sorted = capturedList.slice().sort((a, b) =>
       b.toString().localeCompare(a.toString(), "en-us", {
-        numeric: !unsortedList.some(isNaN),
+        numeric: !capturedList.some(isNaN),
       })
     );
-    expect(capturedList).to.be.deep.equal(reverseSortedList);
+    expect(capturedList).to.be.deep.equal(sorted);
   });
 }
 
@@ -1131,8 +1132,9 @@ export function createMultipleStakeholders(
       stakeholderGroupNames
     );
     stakeholder.create();
+    Stakeholders.openList();
     applySearchFilter("Name", stakeholder.name);
-    exists(stakeholder.name);
+    exists(stakeholder.name, stakeHoldersTable);
     clearAllFilters();
     stakeholdersList.push(stakeholder);
   }
