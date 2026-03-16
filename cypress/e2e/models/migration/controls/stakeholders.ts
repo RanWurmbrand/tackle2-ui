@@ -144,15 +144,13 @@ export class Stakeholders {
         clickByText(navTab, stakeholders);
         cy.url().should("include", "/controls/stakeholders");
         cy.get(stakeHoldersTable)
-          .find("th")
-          .contains("Email")
-          .should("be.visible");
+          .find('td[data-label="Email"]')
+          .should("exist");
       } else {
         clickByText(navTab, stakeholders);
         cy.get(stakeHoldersTable)
-          .find("th")
-          .contains("Email")
-          .should("be.visible");
+          .find('td[data-label="Email"]')
+          .should("exist");
       }
     });
     cy.get("h1", { timeout: 30 * SEC }).should("contain.text", "Controls");
