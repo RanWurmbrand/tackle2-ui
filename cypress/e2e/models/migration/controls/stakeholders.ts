@@ -147,6 +147,12 @@ export class Stakeholders {
           .find("th")
           .contains("Email")
           .should("be.visible");
+      } else {
+        clickByText(navTab, stakeholders);
+        cy.get(stakeHoldersTable)
+          .find("th")
+          .contains("Email")
+          .should("be.visible");
       }
     });
     cy.get("h1", { timeout: 30 * SEC }).should("contain.text", "Controls");
