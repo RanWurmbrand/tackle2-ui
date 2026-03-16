@@ -515,6 +515,13 @@ export function exists(
       cy.url().then((currentUrl) => {
         cy.visit("/");
         cy.visit(currentUrl);
+        // After refresh, ensure correct tab is selected for Controls pages
+        if (
+          tableSelector === stakeHoldersTable &&
+          currentUrl.includes("/controls/stakeholders")
+        ) {
+          clickByText(navTab, "Stakeholders");
+        }
         cy.get(tableSelector).should("be.visible");
         if (itemsPerPage) {
           selectItemsPerPage(itemsPerPage);
