@@ -98,6 +98,48 @@ if (Cypress.env("TRACE_COMMANDS")) {
   });
 }
 
+afterEach(function () {
+  if (this.currentTest?.state === "failed") {
+    const specName = Cypress.spec.name.replace(/\.[^.]+$/, "");
+    const testTitle = (this.currentTest.fullTitle() || "unknown").replace(
+      /[/\\?%*:|"<>]/g,
+      "-"
+    );
+    const filePath = `run/RootcauseAI/${specName}/${testTitle}.html`;
+
+    // Use synchronous Cypress.$ to avoid cy.get failures on about:blank
+    const $body = Cypress.$("body");
+    if ($body.length === 0 || $body.text().includes("Default blank page")) {
+      cy.writeFile(filePath, "<!-- DOM not available at capture time -->", {
+        log: false,
+      });
+      return;
+    }
+
+    const html = $body[0].outerHTML;
+
+    const iframes = Array.from($body[0].querySelectorAll("iframe"));
+    const iframeContents = iframes.map((iframe, index) => {
+      try {
+        const frameDoc =
+          iframe.contentDocument || iframe.contentWindow?.document;
+        if (!frameDoc)
+          return `<!-- iframe ${iframe.id || "iframe-" + index}: no access -->`;
+        return frameDoc.documentElement.outerHTML;
+      } catch (e: any) {
+        return `<!-- iframe ${iframe.id || "iframe-" + index}: ${e.message} -->`;
+      }
+    });
+
+    const iframeSection =
+      iframeContents.length > 0
+        ? "\n<!-- IFRAMES -->\n" + iframeContents.join("\n")
+        : "";
+
+    cy.writeFile(filePath, html + iframeSection, { log: false });
+  }
+});
+
 beforeEach(() => {
   // Disable for static report tests as they need to open local files
   if (Cypress.config("baseUrl") === null) {

@@ -1,5 +1,8 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 
+import fs from "fs";
+import path from "path";
+
 import { defineConfig } from "cypress";
 import cypressFastFail from "cypress-fail-fast/plugin";
 import { tagify } from "cypress-tags";
@@ -121,6 +124,18 @@ export default defineConfig({
         config.env.jira_stage_basic_password =
           process.env.CYPRESS_jira_stage_basic_password;
       }
+
+      // Clean RootcauseAI folder once at the start of a run (like screenshots)
+      let rootcauseCleaned = false;
+      on("before:spec", () => {
+        if (!rootcauseCleaned) {
+          rootcauseCleaned = true;
+          const rootcauseDir = path.join(__dirname, "run", "RootcauseAI");
+          if (fs.existsSync(rootcauseDir)) {
+            fs.rmSync(rootcauseDir, { recursive: true, force: true });
+          }
+        }
+      });
 
       // Plugins
       on("file:preprocessor", tagify(config));
