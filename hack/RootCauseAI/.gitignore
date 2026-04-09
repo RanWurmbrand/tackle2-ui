@@ -1,0 +1,4 @@
+.env
+artifacts/
+previous_artifacts/
+__pycache__/
