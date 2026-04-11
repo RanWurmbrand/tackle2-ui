@@ -56,6 +56,29 @@ The changes field should be a minimal diff of what you changed:
 - Lines starting with `-` were removed
 - Lines starting with `+` were added
 
+## When No Fix Can Be Applied
+
+If you determine that no code fix can resolve the issue, write a record with `"no_fix_possible": true`:
+
+```json
+{
+  "files_edited": [],
+  "reason": "No fix possible - infrastructure issue requires minikube",
+  "no_fix_possible": true,
+  "no_fix_reason": "The hint indicates an infrastructure problem that cannot be solved by code changes"
+}
+```
+
+Use `no_fix_possible: true` when:
+
+- The hint indicates an infrastructure issue (missing minikube, docker, external services)
+- The hint already has `no_fix_possible: true` (agree with the trace-analyzer)
+- You've exhausted all reasonable approaches after reviewing fix history
+- The fix would require changes outside the project scope (node_modules, system config)
+- The test is fundamentally flawed and needs manual rewrite
+
+**Important:** Do NOT use `no_fix_possible` just because a fix is difficult. Only use it when you are confident that no code change within the project can fix the issue.
+
 ## Example
 
 If the hint points to `src/components/UserList.tsx`, you should:

@@ -273,6 +273,30 @@ Use the Write tool to create the hint file with this exact JSON format:
 - If all tests passed, write: `{"path": null, "cause": "[CLEAN] All tests passed successfully", "hints": []}`
 - If the log is unclear, still provide your best guess for the file
 
+## When No Fix Is Possible
+
+If you determine that no code fix can resolve the issue (e.g., infrastructure problem, missing service, environment misconfiguration), add `"no_fix_possible": true` to your output:
+
+```json
+{
+  "path": null,
+  "cause": "[NO_FIX] Test requires minikube but it is not running",
+  "no_fix_possible": true,
+  "no_fix_reason": "Infrastructure issue - requires minikube to be running",
+  "hints": []
+}
+```
+
+Use `no_fix_possible: true` when:
+
+- The test requires infrastructure that isn't available (minikube, docker, external services)
+- The failure is due to environment misconfiguration that can't be fixed by code changes
+- The issue is a flaky test that cannot be stabilized through code
+- The test itself is fundamentally broken and needs manual review
+- After reviewing fix history, you see that all reasonable code-based approaches have been exhausted
+
+**Important:** Do NOT mark a test as `no_fix_possible` just because the first few attempts failed. Only use this when you are confident that no code change can fix the issue.
+
 ## Filename Format
 
 The hint file should be named: `hint_YYYY-MM-DD_HH-MM-SS.json` (use current timestamp)

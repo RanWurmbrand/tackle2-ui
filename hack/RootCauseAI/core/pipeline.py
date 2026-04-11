@@ -103,9 +103,27 @@ class Pipeline:
                 print("\nPipeline stopped: Analysis failed")
                 return False
 
+            # Check if analyzer determined no fix is possible
+            hint = self._read_latest_hint()
+            analyzer_says_no_fix = hint.get("no_fix_possible", False) if hint else False
+
             # Step 4: Generate fix
             if not self._step_generate_fix():
                 print("\nPipeline stopped: Fix generation failed")
+                return False
+
+            # Check if bug-fixer also determined no fix is possible
+            fix_record = self._read_latest_fix()
+            fixer_says_no_fix = fix_record.get("no_fix_possible", False) if fix_record else False
+
+            # If both analyzer and fixer agree no fix is possible, give up early
+            if analyzer_says_no_fix and fixer_says_no_fix:
+                analyzer_reason = hint.get("no_fix_reason", hint.get("cause", "Unknown"))
+                fixer_reason = fix_record.get("no_fix_reason", fix_record.get("reason", "Unknown"))
+                print(f"\n✗ No fix possible - both analyzer and fixer agree")
+                print(f"  Analyzer: {analyzer_reason}")
+                print(f"  Fixer: {fixer_reason}")
+                self._give_up_no_fix(analyzer_reason)
                 return False
 
             # Step 5: Apply fix and rerun
@@ -503,6 +521,50 @@ class Pipeline:
     # -------------------------------------------------------------------------
     # Helper Methods
     # -------------------------------------------------------------------------
+
+    def _read_latest_hint(self) -> dict | None:
+        """Read the latest hint file from artifacts/hints/."""
+        hints_dir = self._artifacts_dir / "hints"
+        if not hints_dir.exists():
+            return None
+        hint_files = sorted(hints_dir.glob("hint_*.json"), key=lambda f: f.stat().st_mtime)
+        if not hint_files:
+            return None
+        try:
+            return json.loads(hint_files[-1].read_text())
+        except (json.JSONDecodeError, OSError):
+            return None
+
+    def _read_latest_fix(self) -> dict | None:
+        """Read the latest fix file from artifacts/bug_fixes/."""
+        fixes_dir = self._artifacts_dir / "bug_fixes"
+        if not fixes_dir.exists():
+            return None
+        fix_files = sorted(fixes_dir.glob("fix_*.json"), key=lambda f: f.stat().st_mtime)
+        if not fix_files:
+            return None
+        try:
+            return json.loads(fix_files[-1].read_text())
+        except (json.JSONDecodeError, OSError):
+            return None
+
+    def _give_up_no_fix(self, reason: str):
+        """Restore target repo to base commit when no fix is possible."""
+        project_path = os.getenv("PROJECT_PATH")
+        if project_path and self._base_commit:
+            self._reset_to_commit(project_path, self._base_commit)
+            print(f"  Restored repo to base commit {self._base_commit[:8]}")
+
+        self._notify_no_fix(reason)
+
+    def _notify_no_fix(self, reason: str):
+        """Send Telegram notification that no fix is possible."""
+        print("\nNotifying user: No fix possible!")
+
+        from messaging.telegram_manager import TelegramManager
+
+        tm = TelegramManager()
+        tm.send_message(f"⏭️ Skipping test - no fix possible: {reason}")
 
     def _create_fix_branch(self) -> tuple[str, str]:
         """Create a new branch for this fix attempt. Returns (branch_name, base_commit) or ("", "") on failure."""
