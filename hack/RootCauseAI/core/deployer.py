@@ -6,6 +6,7 @@ import subprocess
 import time
 from pathlib import Path
 from xml.etree import ElementTree
+import shutil
 
 
 class Deployer:
@@ -199,7 +200,6 @@ class Deployer:
         # Clean previous test results
         run_dir = self.project_path / "run"
         if run_dir.exists():
-            import shutil
             shutil.rmtree(run_dir)
 
         all_tags = ",".join(self.CI_TAG_GROUPS)

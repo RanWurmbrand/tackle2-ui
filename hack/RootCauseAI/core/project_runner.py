@@ -3,6 +3,7 @@ import subprocess
 import time
 from pathlib import Path
 import os
+import sys
 ROOT = Path(__file__).resolve().parents[1]
 class ProjectRunner:
     def __init__(self, project_path: str, command: str = "npm test"):
@@ -81,8 +82,6 @@ class ProjectRunner:
 
 
 if __name__ == "__main__":
-    import sys
-
     if len(sys.argv) < 2:
         print("Usage: python project_runner.py /path/to/project [command]")
         exit(1)

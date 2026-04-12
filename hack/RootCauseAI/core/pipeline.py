@@ -14,7 +14,6 @@ from core.run_report import RunReport
 from core.fix_history import FixHistory, extract_error_summary
 from core.skill_runner import SkillRunner
 
-
 class Pipeline:
     """Orchestrates the full bug detection and fixing flow."""
 
@@ -91,7 +90,6 @@ class Pipeline:
                 # If all tests passed on first run, no fixes needed
                 if all_passed:
                     print("\n✓ All tests passed!")
-                    self._step_notify_success()
                     return True
             skip_tests = False
 
@@ -173,8 +171,6 @@ class Pipeline:
                 self._run_senior_review_loop()
 
                 self._step_commit_fixes()
-
-                self._step_notify_success()
                 return True
 
             # Tests still failing — record attempt with error summary
@@ -268,17 +264,6 @@ class Pipeline:
         except (subprocess.TimeoutExpired, FileNotFoundError):
             pass
 
-    # def _rename_screenshot_to_match_dom(self):
-    #     """Rename screenshot to match DOM snapshot filename."""
-    #     script = self._root_dir / "scripts" / "rename_screenshot_to_match_dom.sh"
-    #     try:
-    #         subprocess.run(
-    #             [str(script), str(self._artifacts_dir)],
-    #             capture_output=True, text=True, timeout=30
-    #         )
-    #     except (subprocess.TimeoutExpired, FileNotFoundError):
-    #         pass
-
     def _step_analyze(self) -> bool:
         """Analyze test failure using trace-analyzer skill."""
         print("\n[2/4] Analyzing failure...")
@@ -288,15 +273,6 @@ class Pipeline:
         """Generate and apply fix using bug-fixer skill."""
         print("\n[3/4] Generating and applying fix...")
         return self.skill_runner.run("bug-fixer", timeout=3600, report=self.report, fix_history=self.fix_history)
-
-    def _step_notify_success(self):
-        """Send Telegram notification that all tests passed."""
-        print("\nNotifying user: All tests passed!")
-
-        from messaging.telegram_manager import TelegramManager
-
-        tm = TelegramManager()
-        tm.send_message("✅ All tests passed! No issues found.")
 
     def _step_commit_fixes(self) -> bool:
         """Commit all fixes using fix-committer skill."""
@@ -354,7 +330,6 @@ class Pipeline:
             if all_passed:
                 print("  ✓ Tests still pass after cleanup")
                 self._step_commit_cleanup()
-                self._step_notify_cleanup_done()
                 return True
 
             # Tests failed - cleaner will restore on next iteration
@@ -365,41 +340,12 @@ class Pipeline:
         print("\n[Cleaner] Committing cleanup...")
         return self.skill_runner.run("fix-committer", timeout=600, report=self.report)
 
-    def _step_notify_cleanup_done(self):
-        """Send Telegram notification that cleanup is done."""
-        print("\nNotifying user: Cleanup complete!")
-
-        from messaging.telegram_manager import TelegramManager
-
-        tm = TelegramManager()
-        tm.send_message("✅ Autofix complete! Tests pass, cleanup done, changes committed.")
-
-    def _notify_rejection(self, reason: str):
-        """Send Telegram notification that fix was rejected."""
-        print("\nNotifying user: Fix rejected!")
-
-        from messaging.telegram_manager import TelegramManager
-
-        tm = TelegramManager()
-        tm.send_message(f"❌ Fix rejected by senior reviewer: {reason}")
-
     def _give_up_and_restore(self):
-        """Restore target repo to base commit and notify user."""
+        """Restore target repo to base commit."""
         project_path = os.getenv("PROJECT_PATH")
         if project_path and self._base_commit:
             self._reset_to_commit(project_path, self._base_commit)
             print(f"  Restored repo to base commit {self._base_commit[:8]}")
-
-        self._notify_give_up()
-
-    def _notify_give_up(self):
-        """Send Telegram notification that we gave up on fixing."""
-        print("\nNotifying user: Gave up on fix!")
-
-        from messaging.telegram_manager import TelegramManager
-
-        tm = TelegramManager()
-        tm.send_message(f"⚠️ Gave up after {self.MAX_FIX_ATTEMPTS} failed attempts. Repo restored to original state.")
 
     def _step_impact_analysis(self) -> bool:
         """Analyze which tests might be affected by the changes."""
@@ -462,7 +408,6 @@ class Pipeline:
                 if base_commit:
                     self._reset_to_commit(project_path, base_commit)
                     print("  Reverted to base commit")
-                self._notify_rejection(reason)
                 return
 
             if decision == "stopped":
@@ -554,17 +499,6 @@ class Pipeline:
         if project_path and self._base_commit:
             self._reset_to_commit(project_path, self._base_commit)
             print(f"  Restored repo to base commit {self._base_commit[:8]}")
-
-        self._notify_no_fix(reason)
-
-    def _notify_no_fix(self, reason: str):
-        """Send Telegram notification that no fix is possible."""
-        print("\nNotifying user: No fix possible!")
-
-        from messaging.telegram_manager import TelegramManager
-
-        tm = TelegramManager()
-        tm.send_message(f"⏭️ Skipping test - no fix possible: {reason}")
 
     def _create_fix_branch(self) -> tuple[str, str]:
         """Create a new branch for this fix attempt. Returns (branch_name, base_commit) or ("", "") on failure."""
