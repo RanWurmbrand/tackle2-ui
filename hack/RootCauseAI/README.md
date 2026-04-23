@@ -19,6 +19,7 @@ Built for the [tackle2-ui](https://github.com/konveyor/tackle2-ui) Cypress E2E t
 - [Directory Structure](#directory-structure)
 - [Usage](#usage)
 - [Configuration](#configuration)
+- [Current Limitations](#current-limitations)
 - [Design Decisions](#design-decisions)
 
 ---
@@ -364,6 +365,28 @@ PROJECT_PATH=../../cypress
 | Namespace         | `konveyor-tackle`                       |
 | Port forward      | `localhost:9000 -> tackle-ui:8080`      |
 | Image pull policy | `Always` (forces fresh pull on refresh) |
+
+---
+
+## Current Limitations
+
+### Won't attempt
+
+- **Infrastructure failures** — if a test fails because minikube is down, a service is unreachable, or ports aren't forwarded, the pipeline detects this and gives up early (both trace-analyzer and bug-fixer must agree `no_fix_possible`). It only fixes code-level bugs.
+- **Bugs outside the project scope** — anything requiring changes to `node_modules`, system configuration, or external dependencies is out of scope.
+- **Multi-test root causes** — the pipeline fixes one test at a time. If multiple tests fail due to a shared root cause, it will attempt to fix each independently rather than identifying the common issue.
+
+### Known workarounds
+
+- **Verification via double-run** — tests are run twice after a fix to catch flaky passes. This is effective but doubles the test execution time for every successful fix.
+- **Brute-force retry loop** — up to 15 fix attempts before giving up. The commentator diary and fix history help avoid repeating the same approach, but the system can still spend significant time on unfixable issues before giving up.
+- **No PR creation** — the pipeline commits to a fix branch but does not push or open a PR. This step is manual until CI integration is built.
+
+### Not yet implemented
+
+- **GitHub Actions integration** — the pipeline runs locally. CI triggers, automatic PR creation, and result reporting are not yet built.
+- **Cost controls** — no budget ceiling or token tracking. Each fix attempt invokes Claude multiple times (trace-analyzer + bug-fixer minimum, plus cleaner + impact-analyzer + senior-reviewer on success).
+- **Parallel test fixing** — failures are processed sequentially. Multiple failing tests could potentially be fixed in parallel.
 
 ---
 
