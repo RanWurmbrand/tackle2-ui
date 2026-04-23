@@ -4,6 +4,8 @@ An autonomous AI-powered pipeline that detects test failures, analyzes root caus
 
 Built for the [tackle2-ui](https://github.com/konveyor/tackle2-ui) Cypress E2E test suite, but architecturally generalizable to other test frameworks.
 
+**In short:** RootCauseAI runs a loop: **run tests → diagnose failure → apply fix → rerun tests**. If tests pass, it cleans up leftover code from failed attempts and commits. If they fail, it tries again (up to 15 times). Each step is handled by a separate Claude agent that reads/writes JSON files in `artifacts/`. A senior reviewer rejects fixes that cheat by weakening tests instead of fixing the actual bug.
+
 ---
 
 ## Table of Contents
@@ -23,7 +25,7 @@ Built for the [tackle2-ui](https://github.com/konveyor/tackle2-ui) Cypress E2E t
 
 ## How It Works
 
-RootCauseAI orchestrates **8 specialized Claude AI agents** (called "skills") in a feedback loop:
+RootCauseAI orchestrates **7 specialized Claude AI agents** (called "skills") in a feedback loop:
 
 ![Pipeline Flow](image.png)
 Each skill is a standalone Claude invocation with its own system prompt, running as a subprocess via the `claude` CLI. Skills communicate through **JSON artifact files** rather than direct API calls, keeping the system loosely coupled and fully auditable.
@@ -35,6 +37,8 @@ Each skill is a standalone Claude invocation with its own system prompt, running
 Each skill is a markdown file containing a Claude system prompt. The `SkillRunner` passes these as `--system-prompt` to the `claude` CLI, giving each agent file system access to the target project and artifacts directory.
 
 **Execution order:** commentator → trace-analyzer → bug-fixer → (loop until pass) → cleaner → impact-analyzer → senior-reviewer → fix-committer.
+
+DOM snapshots are captured via shell scripts (`copy_cypress_screenshot.sh`, `copy_dom_snapshot.sh`) after each test run, not by a separate agent.
 
 ### trace-analyzer
 
@@ -103,7 +107,7 @@ Builds and executes Claude CLI commands. Maps each skill to its required resourc
 
 | Resource            | Skills that receive it                                                              |
 | ------------------- | ----------------------------------------------------------------------------------- |
-| Target project path | trace-analyzer, bug-fixer, cleaner, impact-analyzer, senior-reviewer, fix-committer |
+| Target project path | trace-analyzer, bug-fixer, fix-committer, cleaner, impact-analyzer, senior-reviewer |
 | fix_history.json    | trace-analyzer, bug-fixer, cleaner                                                  |
 | Commentator diary   | commentator, cleaner                                                                |
 
@@ -174,7 +178,7 @@ Manages the Kubernetes test environment on minikube:
 - `pull_latest_tests()` — git fetch + rebase + npm install
 - `refresh_deployment()` — deletes and recreates the Konveyor CR to pull fresh images
 - `start_port_forward()` / `stop_port_forward()` — kubectl port-forward (localhost:9000 -> tackle-ui:8080)
-- `run_discovery_tests()` — runs the full E2E suite once, parses JUnit XML for failures
+- `run_ci_tests()` — runs the full E2E suite once, parses JUnit XML for failures
 
 ---
 
@@ -210,8 +214,8 @@ Manages the Kubernetes test environment on minikube:
 │  │ trace-     │ │ bug-     │ │ cleaner │ │ senior-       │  │
 │  │ analyzer   │ │ fixer    │ │         │ │ reviewer      │  │
 │  ├────────────┤ ├──────────┤ ├─────────┤ ├───────────────┤  │
-│  │commentator │ │dom-      │ │impact-  │ │fix-committer  │  │
-│  │            │ │capturer  │ │analyzer │ │               │  │
+│  │commentator │ │impact-   │ │fix-     │ │               │  │
+│  │            │ │analyzer  │ │committer│ │               │  │
 │  └────────────┘ └──────────┘ └─────────┘ └───────────────┘  │
 └──────────────────────────────────────────────────────────────┘
                        │ reads/writes
@@ -231,7 +235,7 @@ Manages the Kubernetes test environment on minikube:
 | ----------------------------------- | -------------------------------------------------------------------------------------------- |
 | `get_failing_tests.sh`              | Uses `gh` CLI to download nightly CI artifacts, parses JUnit XML for failing test file paths |
 | `copy_cypress_screenshot.sh`        | Copies the latest Cypress screenshot into `artifacts/dom_snapshots/`                         |
-| `copy_dom_snapshot.sh`              | Copies Playwright DOM snapshots from the project into artifacts                              |
+| `copy_dom_snapshot.sh`              | Copies DOM snapshots from the project's `run/RootcauseAI/` into artifacts                    |
 | `cleanup_dom_snapshots.sh`          | Removes all files from `artifacts/dom_snapshots/` before a test run                          |
 | `cleanup_test_resources.sh`         | Kills stale VSCode processes and cleans test data                                            |
 | `rename_screenshot_to_match_dom.sh` | Renames screenshot files to match DOM snapshot naming                                        |
@@ -284,7 +288,7 @@ RootCauseAI/
 │
 ├── skills/                       # Claude system prompts (one per agent)
 │   ├── trace-analyzer.skill.md   # Root cause analysis from logs
-│   ├── bug-fixer.skill.md        # Minimal code fix generation
+│   ├── bug-fixer.skill.md        # Minimal code fix generation & application
 │   ├── commentator.skill.md      # Progress observation diary
 │   ├── cleaner.skill.md          # Dead code removal after fix
 │   ├── impact-analyzer.skill.md  # Affected test detection
@@ -309,7 +313,7 @@ RootCauseAI/
 
 - Python 3.10+
 - `claude` CLI installed and authenticated
-- `python-dotenv` and `requests` packages
+- `python-dotenv` package
 - Git
 - For `--full` mode: minikube with Konveyor deployed, `kubectl`, `gh` CLI
 
@@ -325,6 +329,9 @@ python pipeline.py --nightly
 # Use cached failing_tests.json (from a previous --nightly run)
 python pipeline.py --ft
 
+# Run CI tests locally, then fix every failure
+python pipeline.py --ci
+
 # Full cycle: refresh minikube deployment, discover failures, fix all
 python pipeline.py --full
 ```
@@ -337,6 +344,8 @@ python pipeline.py --full
 | `EXECUTE_COMMAND`     | No       | Test command to run (default: `npm test`)                           |
 | `COLLECT_OUTPUT_LOGS` | No       | Set to `true` to copy test output logs                              |
 | `OUTPUT_LOG_NAME`     | No       | Filename pattern for output logs                                    |
+
+Note: Telegram notifications have been removed. The pipeline runs fully autonomously without external notification dependencies.
 
 ---
 

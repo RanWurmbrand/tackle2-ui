@@ -24,7 +24,7 @@ class SkillRunner:
     #
     # A skill can appear in multiple tuples (e.g. "cleaner" is in all four).
 
-    PROJECT_SKILLS = ("dom-capturer", "trace-analyzer", "bug-fixer", "fix-applier", "fix-committer", "cleaner", "impact-analyzer", "senior-reviewer")
+    PROJECT_SKILLS = ("trace-analyzer", "bug-fixer","fix-committer", "cleaner", "impact-analyzer", "senior-reviewer")
     FIX_HISTORY_SKILLS = ("trace-analyzer", "bug-fixer", "cleaner")
     DIARY_SKILLS = ("commentator", "cleaner")
     FULL_ACCESS_SKILLS = ("commentator", "cleaner")
