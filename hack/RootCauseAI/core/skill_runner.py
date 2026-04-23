@@ -157,7 +157,6 @@ class SkillRunner:
         cmd = [
             "claude",
             "--print",
-            "--dangerously-skip-permissions",
             "--model", "claude-opus-4-5",
         ]
 

@@ -36,6 +36,8 @@ class Pipeline:
         self.fix_history: FixHistory = None
         self.skill_runner: SkillRunner = None
         self._base_commit: str = ""  # Commit to restore to on give-up
+        self._original_branch: str = ""  # Branch we were on before creating fix branch
+        self._fix_branch: str = ""  # The fix branch we created
 
     def run(self) -> bool:
         """Run the full pipeline with loop support."""
@@ -341,11 +343,12 @@ class Pipeline:
         return self.skill_runner.run("fix-committer", timeout=600, report=self.report)
 
     def _give_up_and_restore(self):
-        """Restore target repo to base commit."""
+        """Restore target repo to base commit and cleanup fix branch."""
         project_path = os.getenv("PROJECT_PATH")
         if project_path and self._base_commit:
             self._reset_to_commit(project_path, self._base_commit)
             print(f"  Restored repo to base commit {self._base_commit[:8]}")
+        self._cleanup_fix_branch()
 
     def _step_impact_analysis(self) -> bool:
         """Analyze which tests might be affected by the changes."""
@@ -499,6 +502,7 @@ class Pipeline:
         if project_path and self._base_commit:
             self._reset_to_commit(project_path, self._base_commit)
             print(f"  Restored repo to base commit {self._base_commit[:8]}")
+        self._cleanup_fix_branch()
 
     def _create_fix_branch(self) -> tuple[str, str]:
         """Create a new branch for this fix attempt. Returns (branch_name, base_commit) or ("", "") on failure."""
@@ -506,6 +510,16 @@ class Pipeline:
         if not project_path:
             print("  ERROR: PROJECT_PATH not set")
             return "", ""
+
+        # Save original branch name before creating fix branch
+        try:
+            result = subprocess.run(
+                ["git", "-C", project_path, "rev-parse", "--abbrev-ref", "HEAD"],
+                capture_output=True, text=True, timeout=10
+            )
+            self._original_branch = result.stdout.strip() if result.returncode == 0 else ""
+        except (subprocess.TimeoutExpired, FileNotFoundError):
+            self._original_branch = ""
 
         # Save base commit before creating branch
         base_commit = self._get_head_commit(project_path)
@@ -529,12 +543,32 @@ class Pipeline:
                 print(f"  ERROR: Failed to create branch: {result.stderr}")
                 return "", ""
 
+            self._fix_branch = branch_name
             print(f"  Created branch: {branch_name}")
             return branch_name, base_commit
 
         except (subprocess.TimeoutExpired, FileNotFoundError) as e:
             print(f"  ERROR: {e}")
             return "", ""
+
+    def _cleanup_fix_branch(self):
+        """Checkout original branch and delete the fix branch."""
+        project_path = os.getenv("PROJECT_PATH")
+        if not project_path or not self._original_branch or not self._fix_branch:
+            return
+
+        try:
+            subprocess.run(
+                ["git", "-C", project_path, "checkout", self._original_branch],
+                capture_output=True, text=True, timeout=30
+            )
+            subprocess.run(
+                ["git", "-C", project_path, "branch", "-D", self._fix_branch],
+                capture_output=True, text=True, timeout=30
+            )
+            print(f"  Deleted fix branch: {self._fix_branch}")
+        except (subprocess.TimeoutExpired, FileNotFoundError):
+            pass
 
     def _extract_test_name_from_command(self, command: str) -> str:
         """Extract test name from EXECUTE_COMMAND for branch naming."""
